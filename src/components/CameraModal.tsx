@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { compressImage } from '../lib/image'
-import { sendIntake, type Receipt } from '../lib/api'
+import { sendReceiptPhoto, type Receipt } from '../lib/api'
 
 interface CameraModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: (receipt: Receipt) => void
+  receiptId: string | null
 }
 
-export default function CameraModal({ isOpen, onClose, onSuccess }: CameraModalProps) {
+export default function CameraModal({ isOpen, onClose, onSuccess, receiptId }: CameraModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,6 +57,10 @@ export default function CameraModal({ isOpen, onClose, onSuccess }: CameraModalP
       setError('Камера ещё не готова')
       return
     }
+    if (!receiptId) {
+      setError('Отсутствует receipt_id. Сначала отсканируйте QR-код.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -67,16 +71,14 @@ export default function CameraModal({ isOpen, onClose, onSuccess }: CameraModalP
       if (!ctx) throw new Error('Не удалось сделать снимок')
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
 
+      // Получаем blob напрямую из canvas (без сжатия, так как отправляем multipart)
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9),
       )
       if (!blob) throw new Error('Камера не вернула снимок')
 
-      const compressed = await compressImage(blob)
-      const receipt = (await sendIntake({
-        type: 'receipt',
-        imageBase64: compressed,
-      })) as Receipt
+      // Отправляем фото с receipt_id в формате multipart/form-data
+      const receipt = await sendReceiptPhoto(receiptId, blob)
 
       // Останавливаем камеру
       if (streamRef.current) {

@@ -38,6 +38,11 @@ export default function ScanQR() {
         const storeName = receiptData.store_name ?? 'Магазин будет определён после загрузки фото чека'
         addLog(`Чек получен: ${storeName}`)
         
+        // Сохраняем receipt_id в localStorage для использования при отправке фото
+        if (receiptData.receipt_id) {
+          localStorage.setItem('4buy_current_receipt_id', receiptData.receipt_id)
+        }
+        
         // Переходим на страницу просмотра чека
         setTimeout(() => {
           navigate('/receipt', { state: { receipt: receiptData } })

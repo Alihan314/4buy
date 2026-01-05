@@ -181,6 +181,7 @@ export default function ReceiptView() {
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onSuccess={handleCameraSuccess}
+        receiptId={receipt?.receipt_id ?? null}
       />
     </>
   )

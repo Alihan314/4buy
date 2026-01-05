@@ -76,6 +76,58 @@ export async function sendIntake(payload: IntakePayload): Promise<Receipt | Prod
   return request('/intake', payload)
 }
 
+/**
+ * Отправляет фото чека с receipt_id в формате multipart/form-data
+ * @param receiptId - ID чека, полученный после QR сканирования
+ * @param imageFile - Blob файл изображения
+ */
+export async function sendReceiptPhoto(
+  receiptId: string,
+  imageFile: Blob,
+): Promise<Receipt> {
+  const url = `${API_BASE}/intake`
+
+  // Защита от случайного использования старого API
+  if (url.includes('n8n.cloud') || url.includes('sessiaai') || url.includes('forbuy')) {
+    throw new Error('Прямой доступ к n8n запрещен! Используйте /api/intake')
+  }
+
+  // Создаём FormData для multipart/form-data
+  const formData = new FormData()
+  formData.append('type', 'receipt_photo')
+  formData.append('receipt_id', receiptId)
+  formData.append('image', imageFile, 'receipt.jpg')
+
+  console.log('Sending receipt photo to:', url, { receiptId, imageSize: imageFile.size })
+
+  const res = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    // НЕ устанавливаем Content-Type вручную - браузер сам установит с boundary
+  })
+
+  console.log('Response status:', res.status, res.statusText)
+
+  if (!res.ok) {
+    const text = await res.text()
+    console.error('Request failed:', text)
+    let errorMessage = text || `Request failed with ${res.status}`
+
+    try {
+      const errorJson = JSON.parse(text)
+      errorMessage = errorJson.error || errorJson.message || errorMessage
+    } catch {
+      // Оставляем text как есть
+    }
+
+    throw new Error(errorMessage)
+  }
+
+  const data = await res.json()
+  console.log('Response data:', data)
+  return data as Receipt
+}
+
 // Обратная совместимость со старым API
 export async function sendScan(payload: { mode: 'qr'; qr_string: string }): Promise<Receipt> {
   return sendIntake({ type: 'qr', qrText: payload.qr_string }) as Promise<Receipt>
