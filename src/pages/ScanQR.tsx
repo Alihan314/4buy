@@ -12,7 +12,6 @@ export default function ScanQR() {
   const [status, setStatus] = useState('Наведите камеру на QR')
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
 
   useEffect(() => {
@@ -22,7 +21,6 @@ export default function ScanQR() {
       async (result) => {
         if (busyRef.current) return
         busyRef.current = true
-        setBusy(true)
         setStatus('Отправляем в n8n…')
         try {
           const receipt = (await sendScan({ mode: 'qr', qr_string: result.data })) as Receipt
@@ -32,7 +30,6 @@ export default function ScanQR() {
           setError(err instanceof Error ? err.message : 'Не удалось отправить')
           setStatus('Попробуйте снова')
           busyRef.current = false
-          setBusy(false)
         }
       },
       { maxScansPerSecond: 1, preferredCamera: 'environment' },
