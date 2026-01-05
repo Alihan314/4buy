@@ -10,6 +10,16 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx?v=2"></script>
+    <script>
+      // Принудительная очистка кэша при загрузке
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
