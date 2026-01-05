@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendReceiptPhoto, type Receipt } from '../lib/api'
+import { compressImage } from '../lib/image'
 
 interface CameraModalProps {
   isOpen: boolean
@@ -90,8 +91,7 @@ export default function CameraModal({ isOpen, onClose, onSuccess, receiptId }: C
 
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
 
-      // Получаем blob напрямую из canvas
-      // Качество 0.9 обеспечивает хороший баланс между размером и качеством
+      // Получаем blob из canvas (как в PhotoReceipt)
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9),
       )
@@ -103,12 +103,21 @@ export default function CameraModal({ isOpen, onClose, onSuccess, receiptId }: C
         streamRef.current = null
       }
 
+      // Используем compressImage как в PhotoReceipt для сжатия изображения
+      // Это уменьшает размер файла перед отправкой
+      const compressedBase64 = await compressImage(blob)
+      
+      // Конвертируем base64 обратно в Blob для multipart отправки
+      // (sendReceiptPhoto ожидает Blob, а не base64 строку)
+      const response = await fetch(compressedBase64)
+      const compressedBlob = await response.blob()
+
       // Отправляем фото с receipt_id в формате multipart/form-data
       // sendReceiptPhoto создаёт FormData с полями:
       // - type = "receipt_photo"
       // - receipt_id = receiptId
-      // - image = blob
-      const receipt = await sendReceiptPhoto(receiptId, blob)
+      // - image = compressedBlob
+      const receipt = await sendReceiptPhoto(receiptId, compressedBlob)
 
       // Успешно отправлено - закрываем модалку и обновляем чек
       onSuccess(receipt)
