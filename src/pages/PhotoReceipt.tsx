@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { sendReceiptPhoto } from '../lib/api'
-import type { Receipt } from '../lib/api'
+import { compressImage } from '../lib/image'
+import { sendIntake, type Receipt } from '../lib/api'
 
 export default function PhotoReceipt() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -49,20 +49,21 @@ export default function PhotoReceipt() {
       if (!ctx) throw new Error('Не удалось сделать снимок')
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
 
-      // Получаем blob напрямую из canvas (без сжатия, так как отправляем multipart)
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9),
       )
       if (!blob) throw new Error('Камера не вернула снимок')
 
-      // Пробуем получить receipt_id из localStorage (если был QR сканирован ранее)
-      const receiptId = localStorage.getItem('4buy_current_receipt_id')
-
-      // Используем ту же функцию sendReceiptPhoto, что и в CameraModal
-      // Отправляем type: "receipt_photo" с multipart/form-data
-      const receipt: Receipt = await sendReceiptPhoto(blob, receiptId)
+      // Сжимаем изображение и отправляем как base64 (старый рабочий способ)
+      const compressed = await compressImage(blob)
+      setPreview(compressed)
       
-      setPreview(URL.createObjectURL(blob))
+      // Отправляем type: "receipt" как раньше (рабочая система)
+      const receipt = (await sendIntake({
+        type: 'receipt',
+        imageBase64: compressed,
+      })) as Receipt
+      
       navigate('/receipt', { state: { receipt } })
     } catch (err) {
       console.error(err)
