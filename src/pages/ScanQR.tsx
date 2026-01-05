@@ -1,69 +1,88 @@
-import { useEffect, useRef, useState } from 'react'
-import QrScanner from 'qr-scanner'
-import workerSrc from 'qr-scanner/qr-scanner-worker.min.js?url'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { sendScan, type Receipt } from '../lib/api'
-
-QrScanner.WORKER_PATH = workerSrc
+import QrScanner from '../components/QrScanner'
+import { sendIntake, type Receipt } from '../lib/api'
 
 export default function ScanQR() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [scanner, setScanner] = useState<QrScanner | null>(null)
-  const [status, setStatus] = useState('Наведите камеру на QR')
-  const [error, setError] = useState('')
   const navigate = useNavigate()
-  const busyRef = useRef(false)
+  const [status, setStatus] = useState('Инициализация камеры...')
+  const [error, setError] = useState('')
+  const [receipt, setReceipt] = useState<Receipt | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  useEffect(() => {
-    if (!videoRef.current) return
-    const qr = new QrScanner(
-      videoRef.current,
-      async (result) => {
-        if (busyRef.current) return
-        busyRef.current = true
-        setStatus('Отправляем в n8n…')
-        try {
-          const receipt = (await sendScan({ mode: 'qr', qr_string: result.data })) as Receipt
-          navigate('/receipt', { state: { receipt } })
-        } catch (err) {
-          console.error(err)
-          setError(err instanceof Error ? err.message : 'Не удалось отправить')
-          setStatus('Попробуйте снова')
-          busyRef.current = false
-        }
-      },
-      { maxScansPerSecond: 1, preferredCamera: 'environment' },
-    )
+  const handleScanSuccess = async (qrText: string) => {
+    if (isProcessing) return
+    
+    setIsProcessing(true)
+    setStatus('Отправляем в n8n...')
+    setError('')
 
-    qr
-      .start()
-      .then(() => setStatus('Сканируем...'))
-      .catch((err) => setError(err?.message || 'Нет доступа к камере'))
-
-    setScanner(qr)
-
-    return () => {
-      qr.stop()
-      qr.destroy()
+    try {
+      const result = await sendIntake({ type: 'qr', qrText })
+      
+      // Проверяем, что это receipt (может быть ProductRecognition)
+      if ('receipt_id' in result) {
+        const receiptData = result as Receipt
+        setReceipt(receiptData)
+        setStatus('Чек получен!')
+        
+        // Переходим на страницу просмотра чека
+        setTimeout(() => {
+          navigate('/receipt', { state: { receipt: receiptData } })
+        }, 500)
+      } else {
+        setError('Получен неожиданный формат ответа')
+        setIsProcessing(false)
+      }
+    } catch (err) {
+      console.error('Scan error:', err)
+      setError(err instanceof Error ? err.message : 'Не удалось отправить запрос')
+      setStatus('Попробуйте снова')
+      setIsProcessing(false)
     }
-  }, [navigate])
+  }
+
+  const handleScanError = (errorMessage: string) => {
+    setError(errorMessage)
+    setStatus('Ошибка доступа к камере')
+  }
 
   return (
     <div className="grid">
       <a className="nav-back" href="/">
         ← Назад
       </a>
+      
       <div className="card">
-        <div className="camera">
-          <video ref={videoRef} muted playsInline />
-        </div>
-        <p className="muted" style={{ marginTop: 8 }}>
+        <QrScanner onScanSuccess={handleScanSuccess} onError={handleScanError} />
+      </div>
+
+      {status && !receipt && (
+        <p className="muted" style={{ marginTop: 8, textAlign: 'center' }}>
           {status}
         </p>
-        {error && <p className="error">{error}</p>}
-        {scanner ? null : <p className="muted">Инициализация камеры...</p>}
-      </div>
+      )}
+
+      {error && (
+        <p className="error" style={{ marginTop: 8, textAlign: 'center' }}>
+          {error}
+        </p>
+      )}
+
+      {/* Отображение результата прямо на странице (если нужно) */}
+      {receipt && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="action-info">
+            <strong>Чек получен!</strong>
+            <span className="muted">
+              {receipt.store.name} • {receipt.store.address}
+            </span>
+            <span className="muted">
+              {new Date(receipt.datetime).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-

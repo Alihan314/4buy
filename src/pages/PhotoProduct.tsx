@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { compressImage } from '../lib/image'
-import { sendScan, type ProductRecognition } from '../lib/api'
+import { sendIntake, type ProductRecognition } from '../lib/api'
 
 export default function PhotoProduct() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -55,9 +55,9 @@ export default function PhotoProduct() {
       const compressed = await compressImage(blob)
       setPreview(compressed)
 
-      const recognition = (await sendScan({
-        mode: 'product',
-        image_base64: compressed,
+      const recognition = (await sendIntake({
+        type: 'product',
+        imageBase64: compressed,
       })) as ProductRecognition
       setResult(recognition)
     } catch (err) {

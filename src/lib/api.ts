@@ -1,5 +1,3 @@
-import { getDeviceId } from './device'
-
 export type ReceiptItem = {
   name: string
   qty: number
@@ -25,22 +23,16 @@ export type ProductRecognition = {
   confidence?: number
 }
 
-type ScanPayload =
-  | { mode: 'qr'; qr_string: string; image_base64?: undefined }
-  | { mode: 'receipt'; image_base64: string; qr_string?: undefined }
-  | { mode: 'product'; image_base64: string; qr_string?: undefined }
+type IntakePayload =
+  | { type: 'qr'; qrText: string }
+  | { type: 'receipt'; imageBase64: string }
+  | { type: 'product'; imageBase64: string }
 
-const baseUrl = (import.meta.env.VITE_N8N_BASE_URL || '').replace(/\/$/, '')
-
-function assertBaseUrl() {
-  if (!baseUrl) {
-    throw new Error('VITE_N8N_BASE_URL is not configured')
-  }
-}
+// Используем Vercel API endpoint для проксирования (избегаем CORS)
+const API_BASE = typeof window !== 'undefined' ? '/api' : ''
 
 async function request<T>(path: string, body: unknown): Promise<T> {
-  assertBaseUrl()
-  const res = await fetch(`${baseUrl}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -48,24 +40,34 @@ async function request<T>(path: string, body: unknown): Promise<T> {
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || `Request failed with ${res.status}`)
+    let errorMessage = text || `Request failed with ${res.status}`
+    
+    try {
+      const errorJson = JSON.parse(text)
+      errorMessage = errorJson.error || errorJson.message || errorMessage
+    } catch {
+      // Оставляем text как есть
+    }
+    
+    throw new Error(errorMessage)
   }
 
   return res.json() as Promise<T>
 }
 
-export async function sendScan(payload: ScanPayload): Promise<Receipt | ProductRecognition> {
-  const device_id = getDeviceId()
-  return request('/scan', { ...payload, device_id })
+export async function sendIntake(payload: IntakePayload): Promise<Receipt | ProductRecognition> {
+  return request('/intake', payload)
 }
 
-export async function reportIssue(receiptId: string, message: string) {
-  const device_id = getDeviceId()
-  return request('/feedback', {
-    device_id,
-    receipt_id: receiptId,
-    message,
-  })
+// Обратная совместимость со старым API
+export async function sendScan(payload: { mode: 'qr'; qr_string: string }): Promise<Receipt> {
+  return sendIntake({ type: 'qr', qrText: payload.qr_string }) as Promise<Receipt>
+}
+
+export async function reportIssue(_receiptId: string, _message: string) {
+  // TODO: реализовать через новый API если нужно
+  console.warn('reportIssue not implemented yet')
+  return Promise.resolve()
 }
 
 

@@ -210,4 +210,111 @@
   text-decoration: none;
 }
 
+/* QR Scanner Overlay Styles */
+.qr-scanner-container {
+  position: relative;
+  width: 100%;
+}
+
+.qr-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.qr-overlay-frame {
+  width: 250px;
+  height: 250px;
+  position: relative;
+  border: 2px solid rgba(34, 211, 238, 0.6);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.qr-overlay-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #22d3ee,
+    transparent
+  );
+  animation: qr-scan-line 2s linear infinite;
+}
+
+@keyframes qr-scan-line {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.qr-overlay-corners {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #22d3ee;
+}
+
+.qr-corner-tl {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 12px;
+}
+
+.qr-corner-tr {
+  top: -2px;
+  right: -2px;
+  border-left: none;
+  border-bottom: none;
+  border-top-right-radius: 12px;
+}
+
+.qr-corner-bl {
+  bottom: -2px;
+  left: -2px;
+  border-right: none;
+  border-top: none;
+  border-bottom-left-radius: 12px;
+}
+
+.qr-corner-br {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 12px;
+}
+
 

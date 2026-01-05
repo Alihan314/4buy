@@ -13,7 +13,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.1.1",
-    "qr-scanner": "^1.4.2",
+    "@zxing/library": "^0.18.5",
+    "@zxing/browser": "^0.0.9",
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
@@ -21,6 +22,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@vercel/node": "^3.0.0",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

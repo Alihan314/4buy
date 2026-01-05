@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { compressImage } from '../lib/image'
-import { sendScan, type Receipt } from '../lib/api'
+import { sendIntake, type Receipt } from '../lib/api'
 
 export default function PhotoReceipt() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -56,9 +56,9 @@ export default function PhotoReceipt() {
 
       const compressed = await compressImage(blob)
       setPreview(compressed)
-      const receipt = (await sendScan({
-        mode: 'receipt',
-        image_base64: compressed,
+      const receipt = (await sendIntake({
+        type: 'receipt',
+        imageBase64: compressed,
       })) as Receipt
       navigate('/receipt', { state: { receipt } })
     } catch (err) {

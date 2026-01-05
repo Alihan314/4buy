@@ -35,7 +35,7 @@ function App() {
         <Route path="/receipt" element={<ReceiptView />} />
         <Route path="*" element={<Home />} />
       </Routes>
-    </div>
+      </div>
   )
 }
 
