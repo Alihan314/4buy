@@ -64,7 +64,7 @@ export default function Home() {
           <div className="action-info">
             <strong>Последний сохранённый чек</strong>
             <span className="muted">
-              {saved.store?.name} • {new Date(saved.datetime).toLocaleString()}
+              {saved.store_name ?? 'Магазин будет определён после загрузки фото чека'} • {new Date(saved.datetime).toLocaleString()}
             </span>
           </div>
           <div className="footer-actions">

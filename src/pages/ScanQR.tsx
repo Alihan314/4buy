@@ -35,7 +35,8 @@ export default function ScanQR() {
         const receiptData = result as Receipt
         setReceipt(receiptData)
         setStatus('Чек получен!')
-        addLog(`Чек получен: ${receiptData.store.name}`)
+        const storeName = receiptData.store_name ?? 'Магазин будет определён после загрузки фото чека'
+        addLog(`Чек получен: ${storeName}`)
         
         // Переходим на страницу просмотра чека
         setTimeout(() => {
@@ -101,7 +102,8 @@ export default function ScanQR() {
           <div className="action-info">
             <strong>Чек получен!</strong>
             <span className="muted">
-              {receipt.store.name} • {receipt.store.address}
+              {receipt.store_name ?? 'Магазин будет определён после загрузки фото чека'}
+              {receipt.store_address && ` • ${receipt.store_address}`}
             </span>
             <span className="muted">
               {new Date(receipt.datetime).toLocaleString()}

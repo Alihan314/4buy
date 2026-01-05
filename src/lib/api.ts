@@ -8,11 +8,13 @@ export type ReceiptItem = {
 export type Receipt = {
   receipt_id: string
   source: 'qr' | 'receipt'
-  store: { name: string; address: string }
+  store_name: string | null
+  store_address: string | null
   datetime: string
   items: ReceiptItem[]
   total: number
   currency: string
+  status?: 'partial' | 'complete'
   raw?: { confidence?: number }
 }
 
