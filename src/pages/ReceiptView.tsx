@@ -36,11 +36,22 @@ export default function ReceiptView() {
   const storeAddress = receipt?.store_address ?? ''
 
   useEffect(() => {
-    if (receipt) return
+    if (receipt) {
+      // Сохраняем receipt_id в localStorage для использования при фото
+      if (receipt.receipt_id) {
+        localStorage.setItem('4buy_current_receipt_id', receipt.receipt_id)
+      }
+      return
+    }
     const raw = localStorage.getItem('4buy_last_receipt')
     if (!raw) return
     try {
-      setReceipt(JSON.parse(raw))
+      const savedReceipt = JSON.parse(raw)
+      setReceipt(savedReceipt)
+      // Сохраняем receipt_id из сохранённого чека
+      if (savedReceipt.receipt_id) {
+        localStorage.setItem('4buy_current_receipt_id', savedReceipt.receipt_id)
+      }
     } catch {
       setReceipt(null)
     }
@@ -181,7 +192,11 @@ export default function ReceiptView() {
         isOpen={isCameraOpen}
         onClose={() => setIsCameraOpen(false)}
         onSuccess={handleCameraSuccess}
-        receiptId={receipt?.receipt_id ?? null}
+        receiptId={
+          receipt?.receipt_id ??
+          localStorage.getItem('4buy_current_receipt_id') ??
+          null
+        }
       />
     </>
   )
