@@ -1,7 +1,7 @@
 // Vercel Serverless Function для проксирования запросов в n8n
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { IncomingForm } from 'formidable'
-import { FormData, File } from 'formdata-node'
+import FormData from 'form-data'
 import { tmpdir } from 'os'
 
 const N8N_WEBHOOK_URL = 'https://forbuy.app.n8n.cloud/webhook/4buy/intake'
@@ -72,18 +72,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Missing "image" file' })
       }
 
-      // Создаём FormData для проксирования в n8n
+      // Читаем файл
+      const fs = await import('fs/promises')
+      const fileBuffer = await fs.readFile(parsed.image.filepath)
+      
+      // Создаём FormData для проксирования в n8n (используем form-data для Node.js)
       const formData = new FormData()
       formData.append('type', 'receipt_photo')
       formData.append('receipt_id', parsed.receipt_id)
-      
-      // Читаем файл и добавляем в FormData
-      const fs = await import('fs/promises')
-      const fileBuffer = await fs.readFile(parsed.image.filepath)
-      const fileBlob = new File([fileBuffer], parsed.image.originalFilename || 'receipt.jpg', {
-        type: parsed.image.mimetype || 'image/jpeg',
+      formData.append('image', fileBuffer, {
+        filename: parsed.image.originalFilename || 'receipt.jpg',
+        contentType: parsed.image.mimetype || 'image/jpeg',
       })
-      formData.append('image', fileBlob)
       
       // Удаляем временный файл
       await fs.unlink(parsed.image.filepath).catch(() => {})
@@ -91,10 +91,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Proxying multipart to n8n:', { type, receipt_id: parsed.receipt_id, imageSize: fileBuffer.length })
 
       // Проксируем multipart запрос в n8n
+      // form-data работает как stream, поэтому передаём напрямую
       const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
-        body: formData,
-        // НЕ устанавливаем Content-Type - FormData сам установит с boundary
+        body: formData as any,
+        headers: formData.getHeaders(),
       })
 
       console.log('n8n response status:', n8nResponse.status)
