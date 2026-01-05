@@ -54,16 +54,12 @@ export default function PhotoReceipt() {
       )
       if (!blob) throw new Error('Камера не вернула снимок')
 
-      // Сжимаем изображение и отправляем как base64 (старый рабочий способ)
       const compressed = await compressImage(blob)
       setPreview(compressed)
-      
-      // Отправляем type: "receipt" как раньше (рабочая система)
       const receipt = (await sendIntake({
         type: 'receipt',
         imageBase64: compressed,
       })) as Receipt
-      
       navigate('/receipt', { state: { receipt } })
     } catch (err) {
       console.error(err)

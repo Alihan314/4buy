@@ -106,9 +106,9 @@ export default function CameraModal({ isOpen, onClose, onSuccess, receiptId }: C
       // Отправляем фото с receipt_id в формате multipart/form-data
       // sendReceiptPhoto создаёт FormData с полями:
       // - type = "receipt_photo"
-      // - receipt_id = receiptId (если есть)
+      // - receipt_id = receiptId
       // - image = blob
-      const receipt = await sendReceiptPhoto(blob, receiptId)
+      const receipt = await sendReceiptPhoto(receiptId, blob)
 
       // Успешно отправлено - закрываем модалку и обновляем чек
       onSuccess(receipt)

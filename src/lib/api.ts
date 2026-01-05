@@ -77,13 +77,13 @@ export async function sendIntake(payload: IntakePayload): Promise<Receipt | Prod
 }
 
 /**
- * Отправляет фото чека в формате multipart/form-data
+ * Отправляет фото чека с receipt_id в формате multipart/form-data
+ * @param receiptId - ID чека, полученный после QR сканирования
  * @param imageFile - Blob файл изображения
- * @param receiptId - ID чека (опционально, если есть после QR сканирования)
  */
 export async function sendReceiptPhoto(
+  receiptId: string,
   imageFile: Blob,
-  receiptId?: string | null,
 ): Promise<Receipt> {
   const url = `${API_BASE}/intake`
 
@@ -95,15 +95,10 @@ export async function sendReceiptPhoto(
   // Создаём FormData для multipart/form-data
   const formData = new FormData()
   formData.append('type', 'receipt_photo')
-  
-  // Добавляем receipt_id только если он есть (после QR сканирования)
-  if (receiptId) {
-    formData.append('receipt_id', receiptId)
-  }
-  
+  formData.append('receipt_id', receiptId)
   formData.append('image', imageFile, 'receipt.jpg')
 
-  console.log('Sending receipt photo to:', url, { receiptId: receiptId || 'none', imageSize: imageFile.size })
+  console.log('Sending receipt photo to:', url, { receiptId, imageSize: imageFile.size })
 
   const res = await fetch(url, {
     method: 'POST',
