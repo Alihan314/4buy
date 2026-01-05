@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let body: any
 
     if (isMultipart) {
-      // Парсим multipart для валидации и пересобираем для n8n
+      // Парсим multipart для валидации
       const parsed = await parseMultipart(req)
       
       if (!parsed.type || parsed.type !== 'receipt_photo') {
@@ -75,11 +75,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const fs = await import('fs/promises')
       const fileBuffer = await fs.readFile(parsed.image.filepath)
       
+      console.log('Proxying multipart to n8n:', { 
+        type: parsed.type, 
+        receipt_id: parsed.receipt_id, 
+        imageSize: fileBuffer.length 
+      })
+
       // Создаём FormData для проксирования в n8n
-      // ВАЖНО: используем form-data пакет для Node.js, который правильно работает с n8n
+      // ВАЖНО: используем form-data пакет для Node.js
+      // Поля должны быть: type, receipt_id, image
       const formData = new FormData()
-      formData.append('type', 'receipt_photo')
-      formData.append('receipt_id', parsed.receipt_id)
+      formData.append('type', 'receipt_photo')  // Это должно попасть в $json.body.type в n8n
+      formData.append('receipt_id', parsed.receipt_id)  // Это должно попасть в $json.body.receipt_id в n8n
       formData.append('image', fileBuffer, {
         filename: parsed.image.originalFilename || 'receipt.jpg',
         contentType: parsed.image.mimetype || 'image/jpeg',
@@ -88,20 +95,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Удаляем временный файл
       await fs.unlink(parsed.image.filepath).catch(() => {})
 
-      console.log('Proxying multipart to n8n:', { 
-        type: parsed.type, 
-        receipt_id: parsed.receipt_id, 
-        imageSize: fileBuffer.length 
-      })
-
       // Проксируем multipart запрос в n8n
       // Используем getHeaders() для правильной установки Content-Type с boundary
       const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         body: formData as any,
-        headers: {
-          ...formData.getHeaders(),
-        },
+        headers: formData.getHeaders(),  // Это установит Content-Type: multipart/form-data; boundary=...
       })
 
       console.log('n8n response status:', n8nResponse.status)
