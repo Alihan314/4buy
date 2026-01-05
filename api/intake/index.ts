@@ -56,11 +56,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let body: any
 
     if (isMultipart) {
-      // Обработка multipart/form-data для receipt_photo
+      // Парсим multipart для валидации и пересобираем для n8n
       const parsed = await parseMultipart(req)
-      type = parsed.type
       
-      if (type !== 'receipt_photo') {
+      if (!parsed.type || parsed.type !== 'receipt_photo') {
         return res.status(400).json({ error: 'Invalid type for multipart request. Expected "receipt_photo"' })
       }
 
@@ -76,7 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const fs = await import('fs/promises')
       const fileBuffer = await fs.readFile(parsed.image.filepath)
       
-      // Создаём FormData для проксирования в n8n (используем form-data для Node.js)
+      // Создаём FormData для проксирования в n8n
+      // ВАЖНО: используем form-data пакет для Node.js, который правильно работает с n8n
       const formData = new FormData()
       formData.append('type', 'receipt_photo')
       formData.append('receipt_id', parsed.receipt_id)
@@ -88,14 +88,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Удаляем временный файл
       await fs.unlink(parsed.image.filepath).catch(() => {})
 
-      console.log('Proxying multipart to n8n:', { type, receipt_id: parsed.receipt_id, imageSize: fileBuffer.length })
+      console.log('Proxying multipart to n8n:', { 
+        type: parsed.type, 
+        receipt_id: parsed.receipt_id, 
+        imageSize: fileBuffer.length 
+      })
 
       // Проксируем multipart запрос в n8n
-      // form-data работает как stream, поэтому передаём напрямую
+      // Используем getHeaders() для правильной установки Content-Type с boundary
       const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         body: formData as any,
-        headers: formData.getHeaders(),
+        headers: {
+          ...formData.getHeaders(),
+        },
       })
 
       console.log('n8n response status:', n8nResponse.status)
