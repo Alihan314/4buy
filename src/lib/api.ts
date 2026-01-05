@@ -29,12 +29,20 @@ type IntakePayload =
   | { type: 'product'; imageBase64: string }
 
 // Используем Vercel API endpoint для проксирования (избегаем CORS)
+// ВАЖНО: НЕ используем прямой URL в n8n, только через /api/intake
 const API_BASE = typeof window !== 'undefined' ? '/api' : ''
 
 async function request<T>(path: string, body: unknown): Promise<T> {
-  console.log('Sending request to:', `${API_BASE}${path}`, body)
+  const url = `${API_BASE}${path}`
   
-  const res = await fetch(`${API_BASE}${path}`, {
+  // Защита от случайного использования старого API
+  if (url.includes('n8n.cloud') || url.includes('sessiaai') || url.includes('forbuy')) {
+    throw new Error('Прямой доступ к n8n запрещен! Используйте /api/intake')
+  }
+  
+  console.log('Sending request to:', url, body)
+  
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
