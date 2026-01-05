@@ -14,6 +14,7 @@ export default function QrScanner({ onScanSuccess, onError }: QrScannerProps) {
   const streamRef = useRef<MediaStream | null>(null)
   const lastScannedRef = useRef<string>('')
   const scanningRef = useRef(false)
+  const isScanningActiveRef = useRef(true)
 
   useEffect(() => {
     const video = videoRef.current
@@ -45,12 +46,13 @@ export default function QrScanner({ onScanSuccess, onError }: QrScannerProps) {
 
         // Continuous scanning с использованием decodeFromVideoDevice
         const scanCallback = (result: any, error: any) => {
-          if (result) {
+          if (result && isScanningActiveRef.current) {
             const qrText = result.getText()
             
             // Предотвращаем повторные отправки одного и того же QR
             if (qrText && qrText !== lastScannedRef.current) {
               lastScannedRef.current = qrText
+              isScanningActiveRef.current = false
               
               // Останавливаем камеру
               if (streamRef.current) {
@@ -65,7 +67,7 @@ export default function QrScanner({ onScanSuccess, onError }: QrScannerProps) {
             }
           }
           
-          if (error) {
+          if (error && isScanningActiveRef.current) {
             // Игнорируем ошибки "NotFound" - это нормально, просто QR не найден в кадре
             const errorName = error?.name || ''
             if (errorName !== 'NotFoundException' && errorName !== 'NotFoundError') {
@@ -76,6 +78,9 @@ export default function QrScanner({ onScanSuccess, onError }: QrScannerProps) {
 
         // Запускаем continuous scanning
         codeReader.decodeFromVideoDevice(undefined, video, scanCallback)
+        
+        // Сохраняем флаг для очистки
+        scanningRef.current = true
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Не удалось получить доступ к камере'
         setError(errorMessage)
@@ -88,6 +93,7 @@ export default function QrScanner({ onScanSuccess, onError }: QrScannerProps) {
 
     return () => {
       // Очистка при размонтировании
+      isScanningActiveRef.current = false
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
         streamRef.current = null

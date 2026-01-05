@@ -32,14 +32,19 @@ type IntakePayload =
 const API_BASE = typeof window !== 'undefined' ? '/api' : ''
 
 async function request<T>(path: string, body: unknown): Promise<T> {
+  console.log('Sending request to:', `${API_BASE}${path}`, body)
+  
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
 
+  console.log('Response status:', res.status, res.statusText)
+
   if (!res.ok) {
     const text = await res.text()
+    console.error('Request failed:', text)
     let errorMessage = text || `Request failed with ${res.status}`
     
     try {
@@ -52,7 +57,9 @@ async function request<T>(path: string, body: unknown): Promise<T> {
     throw new Error(errorMessage)
   }
 
-  return res.json() as Promise<T>
+  const data = await res.json()
+  console.log('Response data:', data)
+  return data as T
 }
 
 export async function sendIntake(payload: IntakePayload): Promise<Receipt | ProductRecognition> {
