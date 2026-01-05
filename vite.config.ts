@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/icon-maskable.svg'],
       manifest: {
         name: '4buy Scanner',
@@ -35,6 +35,10 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+      },
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: true,

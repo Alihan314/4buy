@@ -9,6 +9,13 @@ export default function ScanQR() {
   const [error, setError] = useState('')
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugLogs(prev => [...prev.slice(-4), `[${timestamp}] ${message}`])
+    console.log(message)
+  }
 
   const handleScanSuccess = async (qrText: string) => {
     if (isProcessing) return
@@ -16,15 +23,19 @@ export default function ScanQR() {
     setIsProcessing(true)
     setStatus('Отправляем в n8n...')
     setError('')
+    addLog(`QR отсканирован: ${qrText.substring(0, 50)}...`)
 
     try {
+      addLog('Отправка запроса в /api/intake...')
       const result = await sendIntake({ type: 'qr', qrText })
+      addLog('Ответ получен от API')
       
       // Проверяем, что это receipt (может быть ProductRecognition)
       if ('receipt_id' in result) {
         const receiptData = result as Receipt
         setReceipt(receiptData)
         setStatus('Чек получен!')
+        addLog(`Чек получен: ${receiptData.store.name}`)
         
         // Переходим на страницу просмотра чека
         setTimeout(() => {
@@ -32,12 +43,15 @@ export default function ScanQR() {
         }, 500)
       } else {
         setError('Получен неожиданный формат ответа')
+        addLog('Ошибка: неожиданный формат ответа')
         setIsProcessing(false)
       }
     } catch (err) {
       console.error('Scan error:', err)
-      setError(err instanceof Error ? err.message : 'Не удалось отправить запрос')
+      const errorMsg = err instanceof Error ? err.message : 'Не удалось отправить запрос'
+      setError(errorMsg)
       setStatus('Попробуйте снова')
+      addLog(`Ошибка: ${errorMsg}`)
       setIsProcessing(false)
     }
   }
@@ -67,6 +81,18 @@ export default function ScanQR() {
         <p className="error" style={{ marginTop: 8, textAlign: 'center' }}>
           {error}
         </p>
+      )}
+
+      {/* Debug logs для отладки на телефоне */}
+      {debugLogs.length > 0 && (
+        <div className="card" style={{ marginTop: 12, padding: 8, fontSize: '11px', maxHeight: '150px', overflow: 'auto' }}>
+          <strong style={{ display: 'block', marginBottom: 4 }}>Debug Logs:</strong>
+          {debugLogs.map((log, i) => (
+            <div key={i} style={{ color: '#94a3b8', marginBottom: 2 }}>
+              {log}
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Отображение результата прямо на странице (если нужно) */}
