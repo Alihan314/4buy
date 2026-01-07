@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { sendReceiptPhoto, type Receipt } from '../lib/api'
+import { sendIntake, type Receipt } from '../lib/api'
 import { compressImage } from '../lib/image'
 
 interface CameraModalProps {
@@ -103,21 +103,18 @@ export default function CameraModal({ isOpen, onClose, onSuccess, receiptId }: C
         streamRef.current = null
       }
 
-      // Используем compressImage как в PhotoReceipt для сжатия изображения
-      // Это уменьшает размер файла перед отправкой
-      const compressedBase64 = await compressImage(blob)
+      // Используем ТУ ЖЕ логику что и в PhotoReceipt:
+      // 1. Сжимаем изображение через compressImage
+      // 2. Отправляем через sendIntake с type: "receipt" и imageBase64
+      // 3. Добавляем receipt_id если он есть (для фото после QR сканирования)
+      const compressed = await compressImage(blob)
       
-      // Конвертируем base64 обратно в Blob для multipart отправки
-      // (sendReceiptPhoto ожидает Blob, а не base64 строку)
-      const response = await fetch(compressedBase64)
-      const compressedBlob = await response.blob()
-
-      // Отправляем фото с receipt_id в формате multipart/form-data
-      // sendReceiptPhoto создаёт FormData с полями:
-      // - type = "receipt_photo"
-      // - receipt_id = receiptId
-      // - image = compressedBlob
-      const receipt = await sendReceiptPhoto(receiptId, compressedBlob)
+      // Отправляем как в PhotoReceipt, но с receipt_id
+      const receipt = (await sendIntake({
+        type: 'receipt',
+        imageBase64: compressed,
+        receipt_id: receiptId || undefined,
+      })) as Receipt
 
       // Успешно отправлено - закрываем модалку и обновляем чек
       onSuccess(receipt)

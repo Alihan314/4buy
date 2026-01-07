@@ -27,7 +27,7 @@ export type ProductRecognition = {
 
 type IntakePayload =
   | { type: 'qr'; qrText: string }
-  | { type: 'receipt'; imageBase64: string }
+  | { type: 'receipt'; imageBase64: string; receipt_id?: string }
   | { type: 'product'; imageBase64: string }
 
 // Используем Vercel API endpoint для проксирования (избегаем CORS)
